@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Prancheta Tática Fut6 v3.0</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --panel-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --team-a: #0284c7;
+      --team-a-border: #bae6fd;
+      --team-b: #e11d48;
+      --team-b-border: #fecdd3;
+      --pitch-green-1: #15803d;
+      --pitch-green-2: #166534;
+      --accent: #22c55e;
+      --warning: #facc15;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    html, body {
+      background-color: var(--bg-dark);
+      color: var(--text);
+      height: 100vh;
+      height: 100dvh;
+      width: 100vw;
+      overflow: hidden;
+      overscroll-behavior: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Topo / Barra de Ferramentas */
+    header {
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-shrink: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+
+    .brand span {
+      background: var(--accent);
+      color: #052e16;
+      font-size: 0.68rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-weight: 800;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+
+    .toolbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .btn {
+      background: #334155;
+      color: var(--text);
+      border: 1px solid #475569;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .btn:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn.active {
+      background: var(--accent);
+      color: #052e16;
+      border-color: #86efac;
+    }
+
+    .btn.play-btn {
+      background: var(--accent);
+      color: #052e16;
+      border-color: #86efac;
+      font-weight: 800;
+      padding: 7px 14px;
+    }
+
+    .btn.play-btn.playing {
+      background: var(--warning);
+      border-color: #fef08a;
+      color: #1e293b;
+    }
+
+    .btn.danger {
+      background: #7f1d1d;
+      border-color: #b91c1c;
+    }
+
+    .select-ui {
+      background: #0f172a;
+      color: var(--text);
+      border: 1px solid #475569;
+      padding: 6px 8px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* Layout Principal */
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .center-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Área do Campo */
+    .pitch-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      position: relative;
+      background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+      overflow: hidden;
+    }
+
+    /* Campo Horizontal (PC / Celular Deitado) */
+    .pitch {
+      position: relative;
+      border: 3px solid rgba(255, 255, 255, 0.92);
+      border-radius: 8px;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.65);
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    .pitch.horizontal {
+      width: min(100%, calc((100dvh - 130px) * 1.6));
+      aspect-ratio: 16 / 10;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--pitch-green-1) 0%,
+        var(--pitch-green-1) 10%,
+        var(--pitch-green-2) 10%,
+        var(--pitch-green-2) 20%
+      );
+    }
+
+    /* Campo Vertical (Celular em Pé) */
+    .pitch.vertical {
+      height: 100%;
+      max-width: 100%;
+      aspect-ratio: 10 / 15.5;
+      background: repeating-linear-gradient(
+        0deg,
+        var(--pitch-green-1) 0%,
+        var(--pitch-green-1) 10%,
+        var(--pitch-green-2) 10%,
+        var(--pitch-green-2) 20%
+      );
+    }
+
+    /* Marcações do Campo */
+    .pitch-line-mid,
+    .pitch-circle,
+    .pitch-center-spot,
+    .penalty-box,
+    .goal {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    /* Linhas Modo Horizontal */
+    .pitch.horizontal .pitch-line-mid {
+      top: 0; bottom: 0; left: 50%; width: 2px;
+      background: rgba(255, 255, 255, 0.85);
+      transform: translateX(-50%);
+    }
+    .pitch.horizontal .pitch-circle {
+      top: 50%; left: 50%; width: 18%; aspect-ratio: 1 / 1;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .pitch.horizontal .penalty-box.our {
+      top: 22%; height: 56%; width: 16%; left: 0;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      border-left: none; border-radius: 0 10px 10px 0;
+    }
+    .pitch.horizontal .penalty-box.opp {
+      top: 22%; height: 56%; width: 16%; right: 0;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      border-right: none; border-radius: 10px 0 0 10px;
+    }
+    .pitch.horizontal .goal.our {
+      top: 38%; height: 24%; width: 1.5%; left: 0;
+      background: rgba(255, 255, 255, 0.35); border: 2px solid #fff;
+    }
+    .pitch.horizontal .goal.opp {
+      top: 38%; height: 24%; width: 1.5%; right: 0;
+      background: rgba(255, 255, 255, 0.35); border: 2px solid #fff;
+    }
+
+    /* Linhas Modo Vertical */
+    .pitch.vertical .pitch-line-mid {
+      left: 0; right: 0; top: 50%; height: 2px;
+      background: rgba(255, 255, 255, 0.85);
+      transform: translateY(-50%);
+    }
+    .pitch.vertical .pitch-circle {
+      top: 50%; left: 50%; width: 28%; aspect-ratio: 1 / 1;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .pitch.vertical .penalty-box.our {
+      left: 20%; width: 60%; height: 15%; bottom: 0;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      border-bottom: none; border-radius: 10px 10px 0 0;
+    }
+    .pitch.vertical .penalty-box.opp {
+      left: 20%; width: 60%; height: 15%; top: 0;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      border-top: none; border-radius: 0 0 10px 10px;
+    }
+    .pitch.vertical .goal.our {
+      left: 36%; width: 28%; height: 1.5%; bottom: 0;
+      background: rgba(255, 255, 255, 0.35); border: 2px solid #fff;
+    }
+    .pitch.vertical .goal.opp {
+      left: 36%; width: 28%; height: 1.5%; top: 0;
+      background: rgba(255, 255, 255, 0.35); border: 2px solid #fff;
+    }
+
+    .pitch-center-spot {
+      top: 50%; left: 50%; width: 7px; height: 7px;
+      background: #fff; border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Camada SVG */
+    #draw-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .pitch.drawing-mode #draw-layer {
+      pointer-events: auto;
+      cursor: crosshair;
+    }
+
+    /* Bonequinhos (Jogadores) */
+    .entity {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: grab;
+      z-index: 10;
+      /* Área extra de toque para o polegar no celular */
+      padding: 6px;
+    }
+
+    .entity:active {
+      cursor: grabbing;
+      z-index: 35;
+    }
+
+    .player-token {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.75rem;
+      color: #fff;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.55);
+      border: 2.5px solid #fff;
+    }
+
+    .team-a .player-token {
+      background: var(--team-a);
+      border-color: var(--team-a-border);
+    }
+
+    .team-b .player-token {
+      background: var(--team-b);
+      border-color: var(--team-b-border);
+    }
+
+    .gk .player-token {
+      background: #eab308;
+      color: #1e293b;
+      border-color: #fef08a;
+    }
+
+    .player-name {
+      margin-top: 2px;
+      background: rgba(15, 23, 42, 0.9);
+      color: #f8fafc;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 4px;
+      white-space: nowrap;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      max-width: 85px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Bola */
+    .ball-token {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffffff, #cbd5e1);
+      border: 2px solid #0f172a;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      z-index: 25;
+    }
+
+    /* Barra de Animação (Quadros / Timeline) */
+    .timeline-bar {
+      background: var(--panel-bg);
+      border-top: 1px solid var(--border);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-shrink: 0;
+      z-index: 40;
+    }
+
+    .timeline-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .frames-strip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow-x: auto;
+      flex: 1;
+      scrollbar-width: none;
+    }
+
+    .frames-strip::-webkit-scrollbar {
+      display: none;
+    }
+
+    .frame-pill {
+      background: #0f172a;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .frame-pill.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #7dd3fc;
+    }
+
+    /* Barra Lateral / Gaveta de Jogadores */
+    aside {
+      width: 270px;
+      background: var(--panel-bg);
+      border-left: 1px solid var(--border);
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 60;
+    }
+
+    .drawer-header {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .team-section h3 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .player-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .player-row input.role-input {
+      width: 48px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .player-row input.name-input {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+    }
+
+    .hint-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 0.74rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .mobile-only {
+      display: none;
+    }
+
+    /* Ajustes Exclusivos para Celular */
+    @media (max-width: 820px) {
+      header {
+        padding: 6px 8px;
+      }
+      .brand span {
+        display: none;
+      }
+      .mobile-only {
+        display: inline-flex;
+      }
+      .pitch-container {
+        padding: 6px;
+      }
+      .player-token {
+        width: 31px;
+        height: 31px;
+        font-size: 0.66rem;
+        border-width: 2px;
+      }
+      .player-name {
+        font-size: 0.62rem;
+        padding: 1px 4px;
+        max-width: 68px;
+      }
+      .ball-token {
+        width: 22px;
+        height: 22px;
+        font-size: 12px;
+      }
+
+      /* Gaveta Deslizante no Celular */
+      aside {
+        position: fixed;
+        inset: auto 0 0 0;
+        width: 100%;
+        max-height: 78dvh;
+        border-left: none;
+        border-top: 2px solid var(--accent);
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8);
+        transform: translateY(105%);
+        transition: transform 0.25s ease;
+      }
+
+      aside.open {
+        transform: translateY(0);
+      }
+
+      .drawer-header {
+        display: flex;
+      }
+
+      .timeline-bar {
+        padding: 6px 8px;
+        gap: 6px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      ⚽ Fut6 <span>v3.0</span>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn active" id="mode-move" onclick="setMode('move')">✋ Mover</button>
+      <button class="btn" id="mode-run" onclick="setMode('run')">↗️ Corrida</button>
+      <button class="btn" id="mode-pass" onclick="setMode('pass')">⚡ Passe</button>
+      <button class="btn danger" onclick="clearDrawings()" title="Apagar setas">🗑️ Riscos</button>
+
+      <select class="select-ui" onchange="loadPreset(this.value)">
+        <option value="triangulacao-animada">🎬 Saída Pressão (4 Passos)</option>
+        <option value="1-3-1">📐 Formação 1-3-1</option>
+        <option value="2-2-1">📐 Formação 2-2-1</option>
+      </select>
+
+      <button class="btn" onclick="toggleOrientation()" title="Girar campo">🔄 Girar</button>
+      <button class="btn mobile-only" onclick="toggleDrawer()">👥 Nomes</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <div class="center-column">
+      <div class="pitch-container">
+        <div class="pitch horizontal" id="pitch">
+          <div class="goal our"></div>
+          <div class="penalty-box our"></div>
+          <div class="pitch-line-mid"></div>
+          <div class="pitch-circle"></div>
+          <div class="pitch-center-spot"></div>
+          <div class="penalty-box opp"></div>
+          <div class="goal opp"></div>
+
+          <!-- SVG para Rastro Fantasma e Setas -->
+          <svg id="draw-layer" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+            <defs>
+              <marker id="arrow-run" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#facc15" />
+              </marker>
+              <marker id="arrow-pass" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="#ffffff" />
+              </marker>
+              <marker id="arrow-ghost" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                <path d="M 0 1 L 10 5 L 0 9 z" fill="rgba(255,255,255,0.4)" />
+              </marker>
+            </defs>
+            <g id="ghost-group"></g>
+            <g id="arrows-group"></g>
+          </svg>
+
+          <div id="entities-layer"></div>
+        </div>
+      </div>
+
+      <!-- Barra de Quadros (Frames) e Animação -->
+      <div class="timeline-bar">
+        <div class="timeline-controls">
+          <button class="btn play-btn" id="btn-play" onclick="togglePlay()">▶ Play</button>
+          <select class="select-ui" id="speed-select" title="Velocidade">
+            <option value="0.6">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
+        </div>
+
+        <div class="frames-strip" id="frames-strip"></div>
+
+        <div class="timeline-controls">
+          <button class="btn" id="btn-add-frame" onclick="addFrame()">➕ Passo</button>
+          <button class="btn danger" id="btn-del-frame" onclick="deleteFrame()">🗑️</button>
+        </div>
+      </div>
+    </div>
+
+    <aside id="players-drawer">
+      <div class="drawer-header">
+        <strong>👥 Editar Nomes dos Jogadores</strong>
+        <button class="btn" onclick="toggleDrawer()">✖ Fechar</button>
+      </div>
+
+      <div class="hint-box">
+        💡 Arraste os jogadores em cada <strong>Passo</strong> e aperte <strong>Play</strong>. No celular em pé, seu time (Azul) ataca de baixo para cima!
+      </div>
+
+      <div class="team-section">
+        <h3><span class="dot" style="background: var(--team-a)"></span> Seu Time (Azul)</h3>
+        <div id="list-team-a"></div>
+      </div>
+
+      <div class="team-section">
+        <h3><span class="dot" style="background: var(--team-b)"></span> Adversário (Vermelho)</h3>
+        <div id="list-team-b"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const pitch = document.getElementById('pitch');
+    const entitiesLayer = document.getElementById('entities-layer');
+    const drawLayer = document.getElementById('draw-layer');
+    const arrowsGroup = document.getElementById('arrows-group');
+    const ghostGroup = document.getElementById('ghost-group');
+    const framesStrip = document.getElementById('frames-strip');
+    const btnPlay = document.getElementById('btn-play');
+    const drawer = document.getElementById('players-drawer');
+
+    let currentMode = 'move';
+    let isPlaying = false;
+    let loopEnabled = true;
+    let animRequestId = null;
+    let currentFrameIndex = 0;
+
+    // Orientação: vertical automática se a tela estiver em pé no celular
+    let isVertical = window.innerHeight > window.innerWidth && window.innerWidth <= 820;
+
+    // Setas manuais salvas em coordenadas lógicas para girarem junto com o campo
+    let customArrows = [];
+
+    const roster = [
+      { id: 'a1', team: 'a', gk: true,  role: 'GK',  name: 'Goleiro' },
+      { id: 'a2', team: 'a', gk: false, role: 'FIX', name: 'Fixo' },
+      { id: 'a3', team: 'a', gk: false, role: 'ALE', name: 'Ala Esq' },
+      { id: 'a4', team: 'a', gk: false, role: 'MEI', name: 'Você (Meio)' },
+      { id: 'a5', team: 'a', gk: false, role: 'ALD', name: 'Ala Dir' },
+      { id: 'a6', team: 'a', gk: false, role: 'PIV', name: 'Pivô' },
+
+      { id: 'b1', team: 'b', gk: true,  role: 'GK',  name: 'Goleiro Adv' },
+      { id: 'b2', team: 'b', gk: false, role: 'FIX', name: 'Fixo Adv' },
+      { id: 'b3', team: 'b', gk: false, role: 'ALD', name: 'Marc. Ala' },
+      { id: 'b4', team: 'b', gk: false, role: 'MEI', name: 'Marc. Costas' },
+      { id: 'b5', team: 'b', gk: false, role: 'ALE', name: 'Marc. Ala 2' },
+      { id: 'b6', team: 'b', gk: false, role: 'PIV', name: 'Pivô Adv' }
+    ];
+
+    let frames = [];
+    const domEntities = {};
+    let domBall = null;
+
+    // Conversão entre Coordenada Lógica (x=profundidade, y=largura) e Coordenada da Tela (left%, top%)
+    function logicalToScreen(lx, ly) {
+      if (!isVertical) {
+        return { left: lx, top: ly };
+      } else {
+        // No modo vertical: Seu time fica embaixo (top=94%) atacando para cima (top=6%)
+        return { left: ly, top: 100 - lx };
+      }
+    }
+
+    function screenToLogical(leftPct, topPct) {
+      if (!isVertical) {
+        return { x: leftPct, y: topPct };
+      } else {
+        return { x: 100 - topPct, y: leftPct };
+      }
+    }
+
+    function updatePitchOrientationUI() {
+      pitch.classList.toggle('vertical', isVertical);
+      pitch.classList.toggle('horizontal', !isVertical);
+      applyPositionsToDOM(frames[currentFrameIndex]);
+      renderGhostTrails();
+      renderCustomArrows();
+    }
+
+    function toggleOrientation() {
+      isVertical = !isVertical;
+      updatePitchOrientationUI();
+    }
+
+    function toggleDrawer() {
+      drawer.classList.toggle('open');
+    }
+
+    function clonePositions(posObj) {
+      return JSON.parse(JSON.stringify(posObj));
+    }
+
+    function initDOMEntities() {
+      entitiesLayer.innerHTML = '';
+
+      roster.forEach(p => {
+        const el = document.createElement('div');
+        el.className = `entity team-${p.team} ${p.gk ? 'gk' : ''}`;
+        el.dataset.id = p.id;
+        el.innerHTML = `
+          <div class="player-token" id="token-${p.id}">${p.role}</div>
+          <div class="player-name" id="name-${p.id}">${p.name}</div>
+        `;
+
+        // Duplo clique no PC
+        el.addEventListener('dblclick', (e) => {
+          if (isPlaying) return;
+          e.stopPropagation();
+          promptPlayerName(p);
+        });
+
+        makeDraggable(el, (newX, newY) => {
+          frames[currentFrameIndex].players[p.id] = { x: newX, y: newY };
+          renderGhostTrails();
+        });
+
+        entitiesLayer.appendChild(el);
+        domEntities[p.id] = el;
+      });
+
+      domBall = document.createElement('div');
+      domBall.className = 'entity';
+      domBall.innerHTML = `<div class="ball-token">⚽</div>`;
+      makeDraggable(domBall, (newX, newY) => {
+        frames[currentFrameIndex].ball = { x: newX, y: newY };
+        renderGhostTrails();
+      });
+
+      entitiesLayer.appendChild(domBall);
+    }
+
+    function promptPlayerName(p) {
+      const newName = prompt('Nome do jogador:', p.name);
+      if (newName !== null && newName.trim() !== '') {
+        p.name = newName.trim();
+        updateLabels();
+        renderSidebar();
+      }
+    }
+
+    function updateLabels() {
+      roster.forEach(p => {
+        document.getElementById(`token-${p.id}`).textContent = p.role;
+        document.getElementById(`name-${p.id}`).textContent = p.name;
+      });
+    }
+
+    function applyPositionsToDOM(frameState) {
+      if (!frameState) return;
+      roster.forEach(p => {
+        const pos = frameState.players[p.id];
+        if (pos && domEntities[p.id]) {
+          const scr = logicalToScreen(pos.x, pos.y);
+          domEntities[p.id].style.left = `${scr.left}%`;
+          domEntities[p.id].style.top = `${scr.top}%`;
+        }
+      });
+      if (frameState.ball && domBall) {
+        const bScr = logicalToScreen(frameState.ball.x, frameState.ball.y);
+        domBall.style.left = `${bScr.left}%`;
+        domBall.style.top = `${bScr.top}%`;
+      }
+    }
+
+    function renderGhostTrails() {
+      ghostGroup.innerHTML = '';
+      if (isPlaying || currentFrameIndex === 0) return;
+
+      const prevFrame = frames[currentFrameIndex - 1];
+      const currFrame = frames[currentFrameIndex];
+
+      roster.forEach(p => {
+        const p1 = prevFrame.players[p.id];
+        const p2 = currFrame.players[p.id];
+        if (Math.hypot(p2.x - p1.x, p2.y - p1.y) > 1.5) {
+          const s1 = logicalToScreen(p1.x, p1.y);
+          const s2 = logicalToScreen(p2.x, p2.y);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', s1.left * 10);
+          line.setAttribute('y1', s1.top * 10);
+          line.setAttribute('x2', s2.left * 10);
+          line.setAttribute('y2', s2.top * 10);
+          line.setAttribute('stroke', p.team === 'a' ? 'rgba(56, 189, 248, 0.45)' : 'rgba(251, 113, 133, 0.35)');
+          line.setAttribute('stroke-width', '3');
+          line.setAttribute('stroke-dasharray', '6,6');
+          line.setAttribute('marker-end', 'url(#arrow-ghost)');
+          ghostGroup.appendChild(line);
+        }
+      });
+
+      const b1 = prevFrame.ball;
+      const b2 = currFrame.ball;
+      if (Math.hypot(b2.x - b1.x, b2.y - b1.y) > 1.5) {
+        const s1 = logicalToScreen(b1.x, b1.y);
+        const s2 = logicalToScreen(b2.x, b2.y);
+        const ballLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        ballLine.setAttribute('x1', s1.left * 10);
+        ballLine.setAttribute('y1', s1.top * 10);
+        ballLine.setAttribute('x2', s2.left * 10);
+        ballLine.setAttribute('y2', s2.top * 10);
+        ballLine.setAttribute('stroke', 'rgba(255, 255, 255, 0.65)');
+        ballLine.setAttribute('stroke-width', '3');
+        ballLine.setAttribute('stroke-dasharray', '4,6');
+        ghostGroup.appendChild(ballLine);
+      }
+    }
+
+    function renderTimeline() {
+      framesStrip.innerHTML = '';
+      frames.forEach((_, idx) => {
+        const pill = document.createElement('button');
+        pill.className = `frame-pill ${idx === currentFrameIndex ? 'active' : ''}`;
+        pill.textContent = `Passo ${idx + 1}`;
+        pill.onclick = () => selectFrame(idx);
+        framesStrip.appendChild(pill);
+      });
+
+      document.getElementById('btn-del-frame').disabled = frames.length <= 1 || isPlaying;
+      document.getElementById('btn-add-frame').disabled = isPlaying;
+    }
+
+    function selectFrame(index) {
+      if (isPlaying) stopAnimation();
+      currentFrameIndex = index;
+      applyPositionsToDOM(frames[currentFrameIndex]);
+      renderTimeline();
+      renderGhostTrails();
+    }
+
+    function addFrame() {
+      if (isPlaying) return;
+      const copy = clonePositions(frames[currentFrameIndex]);
+      frames.splice(currentFrameIndex + 1, 0, copy);
+      currentFrameIndex++;
+      applyPositionsToDOM(frames[currentFrameIndex]);
+      renderTimeline();
+      renderGhostTrails();
+    }
+
+    function deleteFrame() {
+      if (frames.length <= 1 || isPlaying) return;
+      frames.splice(currentFrameIndex, 1);
+      if (currentFrameIndex >= frames.length) {
+        currentFrameIndex = frames.length - 1;
+      }
+      applyPositionsToDOM(frames[currentFrameIndex]);
+      renderTimeline();
+      renderGhostTrails();
+    }
+
+    function togglePlay() {
+      if (isPlaying) stopAnimation();
+      else startAnimation();
+    }
+
+    function startAnimation() {
+      if (frames.length < 2) {
+        alert('Crie pelo menos 2 passos clicando em "+ Passo" para animar!');
+        return;
+      }
+
+      isPlaying = true;
+      btnPlay.textContent = '⏹ Parar';
+      btnPlay.classList.add('playing');
+      ghostGroup.innerHTML = '';
+
+      if (currentFrameIndex >= frames.length - 1) {
+        currentFrameIndex = 0;
+      }
+
+      let startIndex = currentFrameIndex;
+      let startTime = null;
+      const baseDuration = 1100;
+
+      function step(timestamp) {
+        if (!isPlaying) return;
+        if (!startTime) startTime = timestamp;
+
+        const speed = parseFloat(document.getElementById('speed-select').value) || 1;
+        const duration = baseDuration / speed;
+        const elapsed = timestamp - startTime;
+        let t = Math.min(1, elapsed / duration);
+        const smoothT = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+        const frameA = frames[startIndex];
+        const frameB = frames[startIndex + 1];
+
+        const interpolated = {
+          ball: {
+            x: frameA.ball.x + (frameB.ball.x - frameA.ball.x) * smoothT,
+            y: frameA.ball.y + (frameB.ball.y - frameA.ball.y) * smoothT
+          },
+          players: {}
+        };
+
+        roster.forEach(p => {
+          const pA = frameA.players[p.id];
+          const pB = frameB.players[p.id];
+          interpolated.players[p.id] = {
+            x: pA.x + (pB.x - pA.x) * smoothT,
+            y: pA.y + (pB.y - pA.y) * smoothT
+          };
+        });
+
+        applyPositionsToDOM(interpolated);
+
+        if (t < 1) {
+          animRequestId = requestAnimationFrame(step);
+        } else {
+          startIndex++;
+          currentFrameIndex = startIndex;
+          renderTimeline();
+
+          if (startIndex < frames.length - 1) {
+            startTime = null;
+            animRequestId = requestAnimationFrame(step);
+          } else if (loopEnabled) {
+            setTimeout(() => {
+              if (!isPlaying) return;
+              startIndex = 0;
+              currentFrameIndex = 0;
+              renderTimeline();
+              startTime = null;
+              animRequestId = requestAnimationFrame(step);
+            }, 450);
+          } else {
+            stopAnimation();
+          }
+        }
+      }
+
+      renderTimeline();
+      animRequestId = requestAnimationFrame(step);
+    }
+
+    function stopAnimation() {
+      isPlaying = false;
+      if (animRequestId) cancelAnimationFrame(animRequestId);
+      btnPlay.textContent = '▶ Play';
+      btnPlay.classList.remove('playing');
+      applyPositionsToDOM(frames[currentFrameIndex]);
+      renderTimeline();
+      renderGhostTrails();
+    }
+
+    function renderSidebar() {
+      const listA = document.getElementById('list-team-a');
+      const listB = document.getElementById('list-team-b');
+      listA.innerHTML = '';
+      listB.innerHTML = '';
+
+      roster.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'player-row';
+
+        const roleInput = document.createElement('input');
+        roleInput.className = 'role-input';
+        roleInput.value = p.role;
+        roleInput.maxLength = 4;
+        roleInput.addEventListener('input', (e) => {
+          p.role = e.target.value.toUpperCase();
+          updateLabels();
+        });
+
+        const nameInput = document.createElement('input');
+        nameInput.className = 'name-input';
+        nameInput.value = p.name;
+        nameInput.addEventListener('input', (e) => {
+          p.name = e.target.value;
+          updateLabels();
+        });
+
+        row.appendChild(roleInput);
+        row.appendChild(nameInput);
+
+        if (p.team === 'a') listA.appendChild(row);
+        else listB.appendChild(row);
+      });
+    }
+
+    // Arrastar com suporte total a Touch Mobile sem rolar a tela
+    function makeDraggable(el, onMoveCallback) {
+      let isDragging = false;
+
+      const startDrag = (e) => {
+        if (currentMode !== 'move' || isPlaying) return;
+        isDragging = true;
+        el.style.zIndex = 40;
+        e.stopPropagation();
+      };
+
+      const doDrag = (e) => {
+        if (!isDragging) return;
+        if (e.cancelable) e.preventDefault();
+
+        const rect = pitch.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        let leftPct = ((clientX - rect.left) / rect.width) * 100;
+        let topPct = ((clientY - rect.top) / rect.height) * 100;
+
+        leftPct = Math.max(3, Math.min(97, leftPct));
+        topPct = Math.max(3, Math.min(97, topPct));
+
+        el.style.left = `${leftPct}%`;
+        el.style.top = `${topPct}%`;
+
+        const logical = screenToLogical(leftPct, topPct);
+        onMoveCallback(logical.x, logical.y);
+      };
+
+      const stopDrag = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        el.style.zIndex = '';
+      };
+
+      el.addEventListener('mousedown', startDrag);
+      window.addEventListener('mousemove', doDrag);
+      window.addEventListener('mouseup', stopDrag);
+
+      el.addEventListener('touchstart', startDrag, { passive: true });
+      window.addEventListener('touchmove', doDrag, { passive: false });
+      window.addEventListener('touchend', stopDrag);
+    }
+
+    // Desenho de Setas Manuais (salvas em coordenadas lógicas)
+    let isDrawing = false;
+    let currentArrowObj = null;
+
+    function getLogicalFromEvent(e) {
+      const rect = pitch.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const leftPct = ((clientX - rect.left) / rect.width) * 100;
+      const topPct = ((clientY - rect.top) / rect.height) * 100;
+      return screenToLogical(leftPct, topPct);
+    }
+
+    function renderCustomArrows() {
+      arrowsGroup.innerHTML = '';
+      customArrows.forEach(arr => {
+        const s1 = logicalToScreen(arr.x1, arr.y1);
+        const s2 = logicalToScreen(arr.x2, arr.y2);
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', s1.left * 10);
+        line.setAttribute('y1', s1.top * 10);
+        line.setAttribute('x2', s2.left * 10);
+        line.setAttribute('y2', s2.top * 10);
+        line.setAttribute('stroke-width', '4');
+
+        if (arr.type === 'run') {
+          line.setAttribute('stroke', '#facc15');
+          line.setAttribute('marker-end', 'url(#arrow-run)');
+        } else {
+          line.setAttribute('stroke', '#ffffff');
+          line.setAttribute('stroke-dasharray', '10,8');
+          line.setAttribute('marker-end', 'url(#arrow-pass)');
+        }
+        arrowsGroup.appendChild(line);
+      });
+    }
+
+    drawLayer.addEventListener('mousedown', startArrow);
+    drawLayer.addEventListener('mousemove', moveArrow);
+    window.addEventListener('mouseup', endArrow);
+    drawLayer.addEventListener('touchstart', startArrow, { passive: false });
+    drawLayer.addEventListener('touchmove', moveArrow, { passive: false });
+    window.addEventListener('touchend', endArrow);
+
+    function startArrow(e) {
+      if (currentMode === 'move' || isPlaying) return;
+      if (e.cancelable) e.preventDefault();
+      isDrawing = true;
+      const pt = getLogicalFromEvent(e);
+      currentArrowObj = { x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y, type: currentMode };
+      customArrows.push(currentArrowObj);
+      renderCustomArrows();
+    }
+
+    function moveArrow(e) {
+      if (!isDrawing || !currentArrowObj) return;
+      if (e.cancelable) e.preventDefault();
+      const pt = getLogicalFromEvent(e);
+      currentArrowObj.x2 = pt.x;
+      currentArrowObj.y2 = pt.y;
+      renderCustomArrows();
+    }
+
+    function endArrow() {
+      isDrawing = false;
+      currentArrowObj = null;
+    }
+
+    function clearDrawings() {
+      customArrows = [];
+      renderCustomArrows();
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('mode-move').classList.toggle('active', mode === 'move');
+      document.getElementById('mode-run').classList.toggle('active', mode === 'run');
+      document.getElementById('mode-pass').classList.toggle('active', mode === 'pass');
+      pitch.classList.toggle('drawing-mode', mode !== 'move');
+    }
+
+    function loadPreset(type) {
+      if (isPlaying) stopAnimation();
+      clearDrawings();
+
+      if (type === 'triangulacao-animada') {
+        frames = [
+          {
+            ball: { x: 20, y: 50 },
+            players: {
+              a1: { x: 6, y: 50 },  a2: { x: 18, y: 50 }, a3: { x: 35, y: 16 },
+              a4: { x: 38, y: 50 }, a5: { x: 35, y: 84 }, a6: { x: 58, y: 50 },
+              b1: { x: 94, y: 50 }, b2: { x: 66, y: 50 }, b3: { x: 43, y: 20 },
+              b4: { x: 43, y: 50 }, b5: { x: 43, y: 80 }, b6: { x: 27, y: 46 }
+            }
+          },
+          {
+            ball: { x: 32, y: 50 },
+            players: {
+              a1: { x: 6, y: 50 },  a2: { x: 20, y: 36 }, a3: { x: 42, y: 14 },
+              a4: { x: 33, y: 50 }, a5: { x: 36, y: 84 }, a6: { x: 60, y: 54 },
+              b1: { x: 94, y: 50 }, b2: { x: 65, y: 52 }, b3: { x: 44, y: 22 },
+              b4: { x: 36, y: 50 }, b5: { x: 43, y: 80 }, b6: { x: 26, y: 48 }
+            }
+          },
+          {
+            ball: { x: 22, y: 36 },
+            players: {
+              a1: { x: 6, y: 50 },  a2: { x: 21, y: 36 }, a3: { x: 52, y: 14 },
+              a4: { x: 46, y: 42 }, a5: { x: 38, y: 82 }, a6: { x: 64, y: 58 },
+              b1: { x: 94, y: 50 }, b2: { x: 64, y: 54 }, b3: { x: 46, y: 24 },
+              b4: { x: 34, y: 48 }, b5: { x: 44, y: 78 }, b6: { x: 24, y: 42 }
+            }
+          },
+          {
+            ball: { x: 58, y: 36 },
+            players: {
+              a1: { x: 8, y: 50 },  a2: { x: 28, y: 38 }, a3: { x: 58, y: 16 },
+              a4: { x: 60, y: 38 }, a5: { x: 46, y: 76 }, a6: { x: 72, y: 62 },
+              b1: { x: 92, y: 48 }, b2: { x: 68, y: 52 }, b3: { x: 54, y: 22 },
+              b4: { x: 45, y: 44 }, b5: { x: 50, y: 74 }, b6: { x: 30, y: 40 }
+            }
+          }
+        ];
+      } else if (type === '1-3-1') {
+        frames = [{
+          ball: { x: 22, y: 50 },
+          players: {
+            a1: { x: 6, y: 50 },  a2: { x: 20, y: 50 }, a3: { x: 38, y: 16 },
+            a4: { x: 36, y: 50 }, a5: { x: 38, y: 84 }, a6: { x: 58, y: 50 },
+            b1: { x: 94, y: 50 }, b2: { x: 78, y: 50 }, b3: { x: 58, y: 22 },
+            b4: { x: 48, y: 50 }, b5: { x: 58, y: 78 }, b6: { x: 34, y: 45 }
+          }
+        }];
+      } else if (type === '2-2-1') {
+        frames = [{
+          ball: { x: 24, y: 32 },
+          players: {
+            a1: { x: 6, y: 50 },  a2: { x: 22, y: 32 }, a3: { x: 42, y: 18 },
+            a4: { x: 22, y: 68 }, a5: { x: 42, y: 82 }, a6: { x: 58, y: 50 },
+            b1: { x: 94, y: 50 }, b2: { x: 78, y: 50 }, b3: { x: 58, y: 22 },
+            b4: { x: 48, y: 50 }, b5: { x: 58, y: 78 }, b6: { x: 34, y: 50 }
+          }
+        }];
+      }
+
+      currentFrameIndex = 0;
+      updatePitchOrientationUI();
+      renderTimeline();
+    }
+
+    // Inicialização
+    initDOMEntities();
+    renderSidebar();
+    loadPreset('triangulacao-animada');
+  </script>
+</body>
+</html>
